@@ -1,0 +1,17 @@
+[package]
+name = "cactus-webkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cactus-core = { workspace = true }
+cactus-privacy = { workspace = true }
+gtk4 = { workspace = true }
+glib = { workspace = true }
+gio = { workspace = true }
+webkit6 = { workspace = true }
+soup3 = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+url = { workspace = true }

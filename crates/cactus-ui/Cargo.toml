@@ -1,0 +1,22 @@
+[package]
+name = "cactus-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+cactus-core = { workspace = true }
+cactus-privacy = { workspace = true }
+cactus-webkit = { workspace = true }
+gtk4 = { workspace = true }
+libadwaita = { workspace = true }
+glib = { workspace = true }
+gio = { workspace = true }
+gdk4 = { workspace = true }
+webkit6 = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+url = { workspace = true }
+chrono = { workspace = true }
+parking_lot = { workspace = true }
+serde_json = { workspace = true }
