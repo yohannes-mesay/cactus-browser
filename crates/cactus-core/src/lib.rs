@@ -1,8 +1,10 @@
 pub mod paths;
 pub mod prefs;
+pub mod store;
 
 pub use paths::AppPaths;
 pub use prefs::Preferences;
+pub use store::{Bookmark, DownloadRecord, HistoryEntry, Store};
 
 pub const APP_ID: &str = "org.cactus.Browser";
 pub const APP_NAME: &str = "Cactus";
