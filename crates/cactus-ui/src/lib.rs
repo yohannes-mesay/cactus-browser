@@ -1,3 +1,4 @@
-pub fn run(_private: bool) {
-    eprintln!("ui not wired yet");
-}
+mod app;
+mod style;
+
+pub use app::run;
