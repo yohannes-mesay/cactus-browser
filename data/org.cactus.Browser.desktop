@@ -1,0 +1,23 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Cactus
+GenericName=Web Browser
+Comment=Native Linux-first browser — quiet by default
+Exec=cactus %U
+Icon=org.cactus.Browser
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=org.cactus.Browser
+Keywords=Internet;WWW;Browser;Web;Explorer;
+Actions=new-window;new-private-window;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=cactus
+
+[Desktop Action new-private-window]
+Name=New Private Window
+Exec=cactus --private
