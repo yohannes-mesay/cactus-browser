@@ -1,0 +1,31 @@
+app-id: org.cactus.Browser
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: cactus
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.portal.Desktop
+modules:
+  - name: cactus
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/cactus/cargo
+    build-commands:
+      - cargo --offline build --release --locked || cargo build --release
+      - install -Dm755 target/release/cactus /app/bin/cactus
+      - install -Dm644 data/org.cactus.Browser.desktop /app/share/applications/org.cactus.Browser.desktop
+      - install -Dm644 data/org.cactus.Browser.metainfo.xml /app/share/metainfo/org.cactus.Browser.metainfo.xml
+      - install -Dm644 data/icons/org.cactus.Browser.svg /app/share/icons/hicolor/scalable/apps/org.cactus.Browser.svg
+    sources:
+      - type: dir
+        path: ..
