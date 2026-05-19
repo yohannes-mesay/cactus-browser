@@ -10,8 +10,9 @@ use cactus_core::{
 };
 use cactus_privacy::PrivacyEngine;
 use cactus_webkit::{
-    apply_privacy_headers, attach_request_filter, create_web_view, inject_cosmetic_css, load_html,
-    navigate, SessionBundle,
+    apply_privacy_headers, create_web_view, file_uri_for_path, filename_from_url,
+    inject_cosmetic_css, load_html, navigate, path_from_destination, unique_download_path,
+    wire_privacy, SessionBundle,
 };
 use gio::prelude::*;
 use glib::clone;
@@ -34,7 +35,7 @@ use webkit6::{Download, FindOptions, LoadEvent, WebView};
 
 pub struct AppState {
     pub paths: AppPaths,
-    pub prefs: RefCell<Preferences>,
+    pub prefs: Rc<RefCell<Preferences>>,
     pub store: Arc<Store>,
     pub privacy: Rc<PrivacyEngine>,
     pub normal_session: SessionBundle,
@@ -64,6 +65,7 @@ pub fn build_window(
     state: Rc<AppState>,
     private: bool,
     initial_urls: Option<Vec<String>>,
+    active_tab: usize,
 ) -> ApplicationWindow {
     let session = if private {
         SessionBundle::ephemeral()
@@ -287,6 +289,9 @@ pub fn build_window(
             for (i, url) in urls.iter().enumerate() {
                 let _ = create_tab(&ctx, url, i == 0);
             }
+            if active_tab > 0 {
+                select_tab_index(&ctx.tab_view, active_tab);
+            }
         }
     } else {
         let _ = create_tab(&ctx, NEW_TAB_URI, true);
@@ -312,11 +317,13 @@ fn create_tab(ctx: &Rc<WindowCtx>, uri: &str, select: bool) -> Result<TabPage> {
     let prefs = ctx.state.prefs.borrow().clone();
     let view = create_web_view(&ctx.session, &prefs);
     apply_privacy_headers(&view, &prefs);
-    attach_request_filter(&view, ctx.state.privacy.clone());
+    wire_privacy(&view, ctx.state.privacy.clone());
 
     view.connect_create(clone!(@strong ctx => move |_, _| {
         let prefs = ctx.state.prefs.borrow().clone();
         let view = create_web_view(&ctx.session, &prefs);
+        apply_privacy_headers(&view, &prefs);
+        wire_privacy(&view, ctx.state.privacy.clone());
         let page = ctx.tab_view.append(&view);
         page.set_title("New Tab");
         ctx.tab_view.set_selected_page(&page);
@@ -385,6 +392,7 @@ fn wire_webview(ctx: &Rc<WindowCtx>, view: &WebView, page: &TabPage) {
                     if let Err(err) = ctx.state.store.record_history(&title, &uri) {
                         warn!("history: {err}");
                     }
+                    cactus_core::metrics::record_page_load(&ctx.state.store);
                 }
             }
             _ => {}
@@ -521,6 +529,7 @@ fn bookmark_current(ctx: &Rc<WindowCtx>) {
     }
     match ctx.state.store.add_bookmark(&title, &uri, "Bar") {
         Ok(_) => {
+            cactus_core::metrics::record_bookmark_added(&ctx.state.store);
             show_toast(ctx, "Bookmarked");
             refresh_bookmark_bar(ctx);
         }
@@ -552,68 +561,58 @@ fn refresh_bookmark_bar(ctx: &Rc<WindowCtx>) {
 fn handle_download(ctx: &Rc<WindowCtx>, download: &Download) {
     let dest_dir = ctx.state.paths.downloads_dir();
     let _ = std::fs::create_dir_all(&dest_dir);
-    let suggested = download
-        .request()
-        .and_then(|r| r.uri())
-        .map(|u| {
-            u.split('/')
-                .last()
-                .filter(|s| !s.is_empty())
-                .unwrap_or("download")
-                .to_string()
-        })
-        .unwrap_or_else(|| "download".into());
-    let path = unique_path(&dest_dir, &suggested);
-    download.set_destination(&format!("file://{}", path.display()));
-
     let url = download
         .request()
         .and_then(|r| r.uri())
         .unwrap_or_default()
         .to_string();
+    let suggested = filename_from_url(&url);
+    let path = unique_download_path(&dest_dir, &suggested);
+    download.set_destination(&file_uri_for_path(&path));
+
     let fname = path
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| suggested.clone());
 
-    if !ctx.private {
-        let _ = ctx
-            .state
+    let record_id = if !ctx.private {
+        ctx.state
             .store
-            .add_download(&url, &fname, &path, "started");
-    }
+            .add_download(&url, &fname, &path, "started")
+            .ok()
+            .map(|r| r.id)
+    } else {
+        None
+    };
     show_toast(ctx, &format!("Downloading {fname}"));
 
     download.connect_finished(clone!(@strong ctx => move |d| {
-        let name = d.destination().unwrap_or_default();
-        show_toast(&ctx, &format!("Download complete: {name}"));
+        let dest = d.destination().unwrap_or_default().to_string();
+        let path = path_from_destination(&dest);
+        if let Some(id) = record_id {
+            let _ = ctx.state.store.update_download_status(id, "finished");
+        } else {
+            let _ = ctx
+                .state
+                .store
+                .update_download_status_by_path(&path.to_string_lossy(), "finished");
+        }
+        cactus_core::metrics::record_download_completed(&ctx.state.store);
+        show_toast(&ctx, &format!("Download complete: {}", path.display()));
     }));
-    download.connect_failed(clone!(@strong ctx => move |_, err| {
+    download.connect_failed(clone!(@strong ctx => move |d, err| {
+        let dest = d.destination().unwrap_or_default().to_string();
+        let path = path_from_destination(&dest);
+        if let Some(id) = record_id {
+            let _ = ctx.state.store.update_download_status(id, "failed");
+        } else {
+            let _ = ctx
+                .state
+                .store
+                .update_download_status_by_path(&path.to_string_lossy(), "failed");
+        }
         show_toast(&ctx, &format!("Download failed: {err}"));
     }));
-}
-
-fn unique_path(dir: &std::path::Path, filename: &str) -> std::path::PathBuf {
-    let mut path = dir.join(filename);
-    if !path.exists() {
-        return path;
-    }
-    let stem = std::path::Path::new(filename)
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("download");
-    let ext = std::path::Path::new(filename)
-        .extension()
-        .and_then(|s| s.to_str())
-        .map(|e| format!(".{e}"))
-        .unwrap_or_default();
-    for i in 1..1000 {
-        path = dir.join(format!("{stem}-{i}{ext}"));
-        if !path.exists() {
-            break;
-        }
-    }
-    path
 }
 
 fn show_toast(ctx: &WindowCtx, msg: &str) {
@@ -645,7 +644,7 @@ fn setup_menu(ctx: &Rc<WindowCtx>, menu_btn: &Button) {
         let _ = create_tab(&ctx, NEW_TAB_URI, true);
     }));
     add_action(win, "new-private", clone!(@strong ctx => move |_, _| {
-        let w = build_window(&ctx.app, ctx.state.clone(), true, Some(vec![NEW_TAB_URI.into()]));
+        let w = build_window(&ctx.app, ctx.state.clone(), true, Some(vec![NEW_TAB_URI.into()]), 0);
         w.present();
     }));
     add_action(win, "bookmarks", clone!(@strong ctx => move |_, _| {
@@ -662,7 +661,20 @@ fn setup_menu(ctx: &Rc<WindowCtx>, menu_btn: &Button) {
         ctx.find_entry.grab_focus();
     }));
     add_action(win, "settings", clone!(@strong ctx => move |_, _| {
-        open_uri(&ctx, "cactus://settings", false);
+        crate::settings::open_settings_dialog(
+            &ctx.window,
+            ctx.state.paths.clone(),
+            ctx.state.prefs.clone(),
+            {
+                let privacy = ctx.state.privacy.clone();
+                let bookmark_revealer_paths = ctx.state.paths.clone();
+                move |prefs| {
+                    privacy.set_enabled(prefs.block_ads_trackers);
+                    privacy.set_cosmetic_enabled(prefs.block_cosmetic_filters);
+                    let _ = bookmark_revealer_paths;
+                }
+            },
+        );
     }));
     add_action(win, "about", clone!(@strong ctx => move |_, _| {
         open_uri(&ctx, "cactus://about", false);
@@ -752,12 +764,12 @@ fn setup_shortcuts(ctx: &Rc<WindowCtx>) {
             return glib::Propagation::Stop;
         }
         if ctrl && shift && key == Key::n {
-            let w = build_window(&ctx.app, ctx.state.clone(), true, Some(vec![NEW_TAB_URI.into()]));
+            let w = build_window(&ctx.app, ctx.state.clone(), true, Some(vec![NEW_TAB_URI.into()]), 0);
             w.present();
             return glib::Propagation::Stop;
         }
         if ctrl && !shift && key == Key::n {
-            let w = build_window(&ctx.app, ctx.state.clone(), false, Some(vec![NEW_TAB_URI.into()]));
+            let w = build_window(&ctx.app, ctx.state.clone(), false, Some(vec![NEW_TAB_URI.into()]), 0);
             w.present();
             return glib::Propagation::Stop;
         }
@@ -860,7 +872,7 @@ fn save_session_from(ctx: &WindowCtx) {
     }
 }
 
-pub fn restore_urls(state: &AppState) -> Option<Vec<String>> {
+pub fn restore_urls(state: &AppState) -> Option<(Vec<String>, usize)> {
     if !state.prefs.borrow().restore_session {
         return None;
     }
@@ -869,6 +881,17 @@ pub fn restore_urls(state: &AppState) -> Option<Vec<String>> {
     if win.tabs.is_empty() {
         None
     } else {
-        Some(win.tabs)
+        let active = win.active_tab.min(win.tabs.len().saturating_sub(1));
+        Some((win.tabs, active))
+    }
+}
+
+/// Select tab by index after restore.
+pub fn select_tab_index(window_tabs: &TabView, index: usize) {
+    let model = window_tabs.pages();
+    if let Some(obj) = model.item(index as u32) {
+        if let Ok(page) = obj.downcast::<TabPage>() {
+            window_tabs.set_selected_page(&page);
+        }
     }
 }

@@ -1,4 +1,5 @@
 use crate::paths::AppPaths;
+use crate::permissions::{PermissionDecision, PermissionKind, SitePermission};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
@@ -81,6 +82,21 @@ impl Store {
                 path TEXT NOT NULL,
                 status TEXT NOT NULL,
                 created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS site_permissions (
+                origin TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                decision TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (origin, kind)
+            );
+            CREATE TABLE IF NOT EXISTS privacy_allowlist (
+                origin TEXT PRIMARY KEY,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS local_stats (
+                key TEXT PRIMARY KEY,
+                value INTEGER NOT NULL DEFAULT 0
             );
             CREATE INDEX IF NOT EXISTS idx_history_last ON history(last_visit DESC);
             CREATE INDEX IF NOT EXISTS idx_bookmarks_pos ON bookmarks(folder, position);
@@ -253,6 +269,144 @@ impl Store {
             })
         })?;
         Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn update_download_status(&self, id: i64, status: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE downloads SET status = ?1 WHERE id = ?2",
+            params![status, id],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_download_status_by_path(&self, path: &str, status: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE downloads SET status = ?1 WHERE path = ?2 OR path = ?3",
+            params![status, path, path.trim_start_matches("file://")],
+        )?;
+        Ok(())
+    }
+
+    pub fn set_permission(
+        &self,
+        origin: &str,
+        kind: PermissionKind,
+        decision: PermissionDecision,
+    ) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO site_permissions (origin, kind, decision, updated_at)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(origin, kind) DO UPDATE SET
+               decision=excluded.decision,
+               updated_at=excluded.updated_at",
+            params![origin, kind.as_str(), decision.as_str(), now],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_permission(
+        &self,
+        origin: &str,
+        kind: PermissionKind,
+    ) -> Result<Option<PermissionDecision>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT decision FROM site_permissions WHERE origin = ?1 AND kind = ?2",
+        )?;
+        let mut rows = stmt.query(params![origin, kind.as_str()])?;
+        if let Some(row) = rows.next()? {
+            let s: String = row.get(0)?;
+            Ok(PermissionDecision::parse(&s))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn list_permissions(&self) -> Result<Vec<SitePermission>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt =
+            conn.prepare("SELECT origin, kind, decision FROM site_permissions ORDER BY origin")?;
+        let rows = stmt.query_map([], |r| {
+            let kind_s: String = r.get(1)?;
+            let decision_s: String = r.get(2)?;
+            Ok((r.get::<_, String>(0)?, kind_s, decision_s))
+        })?;
+        let mut out = Vec::new();
+        for row in rows.flatten() {
+            let (origin, kind_s, decision_s) = row;
+            if let (Some(kind), Some(decision)) = (
+                PermissionKind::parse(&kind_s),
+                PermissionDecision::parse(&decision_s),
+            ) {
+                out.push(SitePermission {
+                    origin,
+                    kind,
+                    decision,
+                });
+            }
+        }
+        Ok(out)
+    }
+
+    pub fn allowlist_add(&self, origin: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR IGNORE INTO privacy_allowlist (origin, created_at) VALUES (?1, ?2)",
+            params![origin, now],
+        )?;
+        Ok(())
+    }
+
+    pub fn allowlist_remove(&self, origin: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM privacy_allowlist WHERE origin = ?1", params![origin])?;
+        Ok(())
+    }
+
+    pub fn allowlist_contains(&self, origin: &str) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let n: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM privacy_allowlist WHERE origin = ?1",
+            params![origin],
+            |r| r.get(0),
+        )?;
+        Ok(n > 0)
+    }
+
+    pub fn allowlist_all(&self) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT origin FROM privacy_allowlist ORDER BY origin")?;
+        let rows = stmt.query_map([], |r| r.get(0))?;
+        Ok(rows.filter_map(|r| r.ok()).collect())
+    }
+
+    pub fn bump_stat(&self, key: &str, by: i64) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO local_stats (key, value) VALUES (?1, ?2)
+             ON CONFLICT(key) DO UPDATE SET value = value + excluded.value",
+            params![key, by],
+        )?;
+        let value: i64 =
+            conn.query_row("SELECT value FROM local_stats WHERE key = ?1", params![key], |r| {
+                r.get(0)
+            })?;
+        Ok(value)
+    }
+
+    pub fn get_stat(&self, key: &str) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let value = conn
+            .query_row("SELECT value FROM local_stats WHERE key = ?1", params![key], |r| {
+                r.get(0)
+            })
+            .unwrap_or(0);
+        Ok(value)
     }
 
     pub fn save_session(paths: &AppPaths, session: &SessionState) -> Result<()> {

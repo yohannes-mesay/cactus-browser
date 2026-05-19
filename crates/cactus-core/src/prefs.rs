@@ -15,6 +15,13 @@ pub struct Preferences {
     pub send_gpc: bool,
     pub show_bookmark_bar: bool,
     pub default_zoom: f64,
+    pub ask_before_download: bool,
+    pub enable_javascript: bool,
+    pub enable_smooth_scrolling: bool,
+    pub hardware_acceleration: bool,
+    pub clear_history_on_quit: bool,
+    pub omnibox_suggestion_limit: usize,
+    pub block_cosmetic_filters: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -38,6 +45,13 @@ impl Default for Preferences {
             send_gpc: true,
             show_bookmark_bar: true,
             default_zoom: 1.0,
+            ask_before_download: false,
+            enable_javascript: true,
+            enable_smooth_scrolling: true,
+            hardware_acceleration: true,
+            clear_history_on_quit: false,
+            omnibox_suggestion_limit: 8,
+            block_cosmetic_filters: true,
         }
     }
 }
@@ -64,7 +78,7 @@ impl Preferences {
     }
 
     pub fn search_url(&self, query: &str) -> String {
-        let q = urlencoding_lite(query);
+        let q = encode_query(query);
         match &self.search_engine {
             SearchEngine::DuckDuckGo => format!("https://duckduckgo.com/?q={q}"),
             SearchEngine::Startpage => format!("https://www.startpage.com/sp/search?query={q}"),
@@ -76,9 +90,22 @@ impl Preferences {
             }
         }
     }
+
+    pub fn validate(&self) -> Result<()> {
+        if self.default_zoom < 0.3 || self.default_zoom > 5.0 {
+            anyhow::bail!("default_zoom out of range (0.3–5.0)");
+        }
+        if self.omnibox_suggestion_limit == 0 || self.omnibox_suggestion_limit > 50 {
+            anyhow::bail!("omnibox_suggestion_limit out of range (1–50)");
+        }
+        if self.homepage.trim().is_empty() {
+            anyhow::bail!("homepage must not be empty");
+        }
+        Ok(())
+    }
 }
 
-fn urlencoding_lite(s: &str) -> String {
+pub fn encode_query(s: &str) -> String {
     let mut out = String::with_capacity(s.len() * 2);
     for b in s.bytes() {
         match b {

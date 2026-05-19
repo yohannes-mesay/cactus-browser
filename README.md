@@ -18,8 +18,15 @@ Linux users are stuck between heavy Chromium clones and browsers that feel poorl
 
 - Multi-window / multi-tab browsing (`AdwTabView`)
 - Omnibox (URL + search), find-in-page, zoom
-- Bookmarks bar, history, downloads, session restore
+- Bookmarks bar, history, downloads (with finished/failed status), session restore (active tab)
 - Private windows (ephemeral WebKit network session)
+- **Request policy blocking** for ads/trackers + cosmetic CSS filtering (EasyList / EasyPrivacy)
+- Per-site privacy allowlist, local privacy/stats counters (never phoned home)
+- GTK settings dialog (search engine, HTTPS-First, JS, zoom, session, etc.)
+- Netscape bookmark import/export helpers
+- Site permission store (notifications / geo / media / …)
+- Omnibox suggestion ranking (history + bookmarks + search)
+- CLI: `cactus [URL...] [--private] [--no-restore] [-v]`
 - Internal pages: `cactus://newtab`, `settings`, `history`, `bookmarks`, `downloads`, `about`
 - Keyboard shortcuts: `Ctrl+T/W/L/R`, `Ctrl+Tab`, `Alt+←/→`, `Ctrl+Shift+N`, `Ctrl+D/H/J/F`
 
@@ -112,18 +119,18 @@ Filter cache: `~/.cache/cactus/filters/`
 
 ```
 crates/
-  cactus/           # binary entrypoint
-  cactus-ui/        # Adw windows, tabs, omnibox, shortcuts
-  cactus-webkit/    # WebView + NetworkSession helpers
-  cactus-privacy/   # adblock engine + filter lists
-  cactus-core/      # prefs, SQLite store, URL/helpers, internal HTML
+  cactus/           # binary entrypoint + CLI
+  cactus-ui/        # Adw windows, tabs, settings dialog, shortcuts
+  cactus-webkit/    # WebView, NetworkSession, policy blocking, downloads
+  cactus-privacy/   # adblock engine, allowlist, stats, filter lists
+  cactus-core/      # prefs, SQLite, omnibox, bookmarks I/O, permissions, metrics
 ```
 
 ## Tests
 
 ```bash
 source scripts/env.sh
-cargo test -p cactus-core -p cactus-privacy
+cargo test -p cactus-core -p cactus-privacy -p cactus-webkit
 ```
 
 Manual checklist: [`MANUAL_TEST.md`](MANUAL_TEST.md).

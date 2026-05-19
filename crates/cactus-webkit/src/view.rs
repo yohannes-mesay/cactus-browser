@@ -1,22 +1,20 @@
 use crate::session::SessionBundle;
 use cactus_core::Preferences;
 use cactus_privacy::PrivacyEngine;
-use gtk4::prelude::*;
 use log::debug;
 use std::rc::Rc;
 use webkit6::prelude::*;
-use webkit6::{
-    NetworkSession, Settings as WebSettings, UserStyleLevel, UserStyleSheet, WebView,
-};
+use webkit6::{Settings as WebSettings, UserStyleLevel, UserStyleSheet, WebView};
 
 pub fn create_web_view(session: &SessionBundle, prefs: &Preferences) -> WebView {
     let settings = WebSettings::new();
     settings.set_enable_developer_extras(true);
-    settings.set_enable_smooth_scrolling(true);
+    settings.set_enable_smooth_scrolling(prefs.enable_smooth_scrolling);
     settings.set_enable_back_forward_navigation_gestures(true);
     settings.set_javascript_can_open_windows_automatically(false);
     settings.set_allow_modal_dialogs(false);
     settings.set_enable_page_cache(true);
+    settings.set_enable_javascript(prefs.enable_javascript);
 
     let view = WebView::builder()
         .network_session(&session.network)
@@ -81,16 +79,16 @@ pub fn navigate(view: &WebView, uri: &str) {
     view.load_uri(uri);
 }
 
-/// Attach resource-load filtering using PrivacyEngine (best-effort logging).
+/// Resource-load observer — pairs with policy blocking for visibility/stats.
 pub fn attach_request_filter(view: &WebView, privacy: Rc<PrivacyEngine>) {
     view.connect_resource_load_started(move |web_view, _resource, request| {
         let url = request.uri().unwrap_or_default().to_string();
         let source = web_view
             .uri()
             .unwrap_or_else(|| "https://example.invalid".into());
-        let decision = privacy.should_block(&url, &source, "other");
+        let decision = privacy.should_block_auto(&url, &source, None);
         if decision.matched {
-            debug!("blocked {url}");
+            debug!("resource matched block list: {url}");
         }
     });
 }
@@ -102,8 +100,4 @@ pub fn webkit_version_string() -> String {
         webkit6::functions::minor_version(),
         webkit6::functions::micro_version()
     )
-}
-
-pub fn network_session_of(view: &WebView) -> Option<NetworkSession> {
-    view.network_session()
 }

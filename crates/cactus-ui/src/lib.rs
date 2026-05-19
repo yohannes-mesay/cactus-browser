@@ -1,5 +1,7 @@
 mod app;
-mod window;
+mod omnibox_ui;
+mod settings;
 mod style;
+mod window;
 
 pub use app::run;

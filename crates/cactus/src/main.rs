@@ -1,9 +1,10 @@
 use anyhow::Result;
+use cactus_core::LaunchArgs;
 
 fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let args = LaunchArgs::parse(std::env::args());
+    let filter = if args.verbose { "debug" } else { "info" };
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(filter)).init();
 
-    let private = std::env::args().any(|a| a == "--private" || a == "-p");
-
-    cactus_ui::run(private)
+    cactus_ui::run(args)
 }

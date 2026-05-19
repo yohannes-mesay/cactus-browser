@@ -1,6 +1,5 @@
 use anyhow::Result;
 use cactus_core::AppPaths;
-use webkit6::prelude::*;
 use webkit6::{NetworkSession, UserContentManager, WebsiteDataManager, WebsiteDataTypes};
 
 /// Shared WebKit network/session objects for a browsing profile.
