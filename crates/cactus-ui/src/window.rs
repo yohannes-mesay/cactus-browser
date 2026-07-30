@@ -2,7 +2,7 @@ use crate::style::APP_CSS;
 use anyhow::Result;
 use cactus_core::internal::{
     about_html, bookmarks_html, downloads_html, error_html, history_html, is_internal, map_about,
-    newtab_html, settings_html,
+    newtab_html, privacy_html, settings_html,
 };
 use cactus_core::store::{SessionState, SessionWindow};
 use cactus_core::{
@@ -461,7 +461,24 @@ fn render_internal(ctx: &Rc<WindowCtx>, uri: &str) -> String {
         "cactus://newtab" | "cactus://home" => {
             let bookmarks = ctx.state.store.list_bookmark_bar().unwrap_or_default();
             let history = ctx.state.store.list_history(12).unwrap_or_default();
-            newtab_html(&bookmarks, &history)
+            let stats = ctx.state.privacy.stats();
+            newtab_html(
+                &bookmarks,
+                &history,
+                stats.blocked_requests,
+                stats.cosmetic_injections,
+            )
+        }
+        "cactus://privacy" | "cactus://shield" => {
+            let stats = ctx.state.privacy.stats();
+            privacy_html(
+                &prefs,
+                stats.blocked_requests,
+                stats.allowed_requests,
+                stats.cosmetic_injections,
+                ctx.state.privacy.engine_loaded(),
+                &ctx.state.privacy.allowlist().list(),
+            )
         }
         "cactus://settings" | "cactus://preferences" => settings_html(&prefs),
         "cactus://history" => {
@@ -476,7 +493,9 @@ fn render_internal(ctx: &Rc<WindowCtx>, uri: &str) -> String {
             let entries = ctx.state.store.list_downloads(100).unwrap_or_default();
             downloads_html(&entries)
         }
-        "cactus://about" => about_html(&cactus_webkit::webkit_version_string()),
+        "cactus://about" | "cactus://landing" | "cactus://project" => {
+            about_html(&cactus_webkit::webkit_version_string())
+        }
         _ => error_html(
             "Unknown internal page",
             "This cactus:// page is not implemented.",
@@ -627,6 +646,7 @@ fn setup_menu(ctx: &Rc<WindowCtx>, menu_btn: &Button) {
     menu.append(Some("Bookmarks"), Some("win.bookmarks"));
     menu.append(Some("History"), Some("win.history"));
     menu.append(Some("Downloads"), Some("win.downloads"));
+    menu.append(Some("Privacy Dashboard"), Some("win.privacy"));
     menu.append(Some("Find in Page"), Some("win.find"));
     menu.append(Some("Settings"), Some("win.settings"));
     menu.append(Some("Toggle Ad Blocking"), Some("win.toggle-blocking"));
@@ -655,6 +675,9 @@ fn setup_menu(ctx: &Rc<WindowCtx>, menu_btn: &Button) {
     }));
     add_action(win, "downloads", clone!(@strong ctx => move |_, _| {
         open_uri(&ctx, "cactus://downloads", false);
+    }));
+    add_action(win, "privacy", clone!(@strong ctx => move |_, _| {
+        open_uri(&ctx, "cactus://privacy", false);
     }));
     add_action(win, "find", clone!(@strong ctx => move |_, _| {
         ctx.find_revealer.set_reveal_child(true);
@@ -783,6 +806,10 @@ fn setup_shortcuts(ctx: &Rc<WindowCtx>) {
         }
         if ctrl && !shift && key == Key::j {
             open_uri(&ctx, "cactus://downloads", false);
+            return glib::Propagation::Stop;
+        }
+        if ctrl && shift && key == Key::p {
+            open_uri(&ctx, "cactus://privacy", false);
             return glib::Propagation::Stop;
         }
         if ctrl && !shift && key == Key::f {

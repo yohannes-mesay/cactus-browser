@@ -15,7 +15,7 @@
     </p>
   </description>
   <launchable type="desktop-id">org.cactus.Browser.desktop</launchable>
-  <url type="homepage">https://github.com/cactus-browser/cactus</url>
+  <url type="homepage">https://cactus-browser.tech</url>
   <categories>
     <category>Network</category>
     <category>WebBrowser</category>
@@ -24,6 +24,11 @@
     <binary>cactus</binary>
   </provides>
   <releases>
+    <release version="1.2.0" date="2026-10-14">
+      <description>
+        <p>Privacy dashboard with live session stats, new-tab privacy summary, project landing page, and Ctrl+Shift+P shortcut.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-08-03">
       <description>
         <p>Initial usable daily-driver release: tabs, bookmarks, history, downloads, private windows, and ad/tracker blocking.</p>

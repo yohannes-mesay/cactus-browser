@@ -16,7 +16,12 @@ pub fn map_about(uri: &str) -> Option<&'static str> {
     }
 }
 
-pub fn newtab_html(bookmarks: &[Bookmark], history: &[HistoryEntry]) -> String {
+pub fn newtab_html(
+    bookmarks: &[Bookmark],
+    history: &[HistoryEntry],
+    blocked_count: u64,
+    cosmetic_count: u64,
+) -> String {
     let mut bookmarks_html = String::new();
     for b in bookmarks.iter().take(8) {
         bookmarks_html.push_str(&format!(
@@ -112,12 +117,15 @@ pub fn newtab_html(bookmarks: &[Bookmark], history: &[HistoryEntry]) -> String {
   .row:hover {{ border-color: rgba(62,207,142,0.35); }}
   .row span {{ color: var(--muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
   .muted {{ color: var(--muted); }}
+  .privacy-strip {{ font-size: 0.9rem; margin: -16px 0 28px; }}
+  .privacy-strip a {{ color: var(--accent); }}
 </style>
 </head>
 <body>
 <main>
   <h1 class="brand">Cac<span>tus</span></h1>
   <p class="tag">Native Linux browsing. Quiet by default.</p>
+  <p class="privacy-strip"><a href="cactus://privacy">Privacy this session</a>: {blocked} blocked requests · {cosmetic} cosmetic rules applied</p>
   <form action="https://duckduckgo.com/" method="get" role="search">
     <input name="q" autofocus placeholder="Search or enter address" autocomplete="off"/>
     <button type="submit">Go</button>
@@ -135,7 +143,93 @@ document.querySelector('form').addEventListener('submit', (e) => {{
 }});
 </script>
 </body>
-</html>"#
+</html>"#,
+        blocked = blocked_count,
+        cosmetic = cosmetic_count,
+    )
+}
+
+/// Session privacy dashboard (`cactus://privacy`).
+pub fn privacy_html(
+    prefs: &Preferences,
+    blocked: u64,
+    allowed: u64,
+    cosmetic: u64,
+    filter_engine_ready: bool,
+    allowlist: &[String],
+) -> String {
+    let mut allowlist_rows = String::new();
+    for origin in allowlist {
+        allowlist_rows.push_str(&format!(
+            r#"<div class="row"><strong>{}</strong><span>Tracking protection disabled</span></div>"#,
+            esc_html(origin)
+        ));
+    }
+    if allowlist_rows.is_empty() {
+        allowlist_rows = r#"<p class="muted">No sites on your allowlist.</p>"#.into();
+    }
+
+    let body = format!(
+        r#"
+<p class="muted">Counters reflect this browser session only. Nothing is sent to Cactus or third parties.</p>
+<div class="metrics">
+  <div class="metric"><span class="num">{blocked}</span><span class="lbl">Network blocks</span></div>
+  <div class="metric"><span class="num">{allowed}</span><span class="lbl">Allowed requests</span></div>
+  <div class="metric"><span class="num">{cosmetic}</span><span class="lbl">Cosmetic rules</span></div>
+</div>
+<div class="card">
+  <h2>Protection</h2>
+  <label><span>Block ads &amp; trackers</span><span>{block}</span></label>
+  <label><span>Cosmetic filtering</span><span>{cosmetic_on}</span></label>
+  <label><span>Filter lists loaded</span><span>{engine}</span></label>
+  <label><span>HTTPS-First</span><span>{https}</span></label>
+  <label><span>Do Not Track</span><span>{dnt}</span></label>
+  <label><span>Global Privacy Control</span><span>{gpc}</span></label>
+</div>
+<h2>Allowlist</h2>
+<div class="list">{allowlist_rows}</div>
+<p class="muted">Allow a site from the app menu when blocking breaks a page you trust. Stored in <code>~/.local/share/cactus/cactus.db</code>.</p>
+<p><a href="cactus://settings">Open settings</a> · <a href="cactus://newtab">New tab</a></p>
+"#,
+        blocked = blocked,
+        allowed = allowed,
+        cosmetic = cosmetic,
+        block = prefs.block_ads_trackers,
+        cosmetic_on = prefs.block_cosmetic_filters,
+        engine = if filter_engine_ready { "yes" } else { "no" },
+        https = prefs.https_first,
+        dnt = prefs.send_dnt,
+        gpc = prefs.send_gpc,
+    );
+
+    privacy_shell_page(&body)
+}
+
+fn privacy_shell_page(body: &str) -> String {
+    format!(
+        r#"<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><title>Privacy</title>
+<style>
+body{{margin:0;font-family:Ubuntu,Cantarell,sans-serif;background:#0f1411;color:#e8efe9}}
+main{{max-width:800px;margin:32px auto;padding:0 20px}}
+h1{{letter-spacing:-0.03em;font-size:1.75rem}}
+h2{{font-size:0.95rem;margin:0 0 12px;font-weight:600}}
+.muted{{color:#93a59a;font-size:0.92rem;line-height:1.55}}
+.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0 28px}}
+.metric{{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center}}
+.metric .num{{display:block;font-size:1.75rem;font-weight:700;color:#3ecf8e;letter-spacing:-0.02em}}
+.metric .lbl{{font-size:0.78rem;color:#93a59a}}
+.card{{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px 18px;margin:16px 0 24px}}
+.card label{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.92rem}}
+.card label:last-child{{border:0}}
+.list{{display:grid;gap:8px;margin-bottom:16px}}
+.row{{display:grid;gap:2px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}}
+.row span{{color:#93a59a;font-size:0.85rem}}
+a{{color:#3ecf8e}}
+code{{background:#1b2420;padding:2px 6px;border-radius:4px;font-size:0.85em}}
+</style></head>
+<body><main><h1>Privacy dashboard</h1>{body}</main></body></html>"#,
+        body = body,
     )
 }
 
@@ -172,7 +266,7 @@ code{{background:#222;padding:2px 6px;border-radius:4px}}
 <label><span>Send GPC</span><span>{gpc}</span></label>
 </div>
 <div class="card">
-<p>Shortcuts: Ctrl+T new tab · Ctrl+W close · Ctrl+L focus URL · Ctrl+Shift+N private window · Ctrl+D bookmark · Ctrl+H history · Ctrl+J downloads · Ctrl+F find</p>
+<p>Shortcuts: Ctrl+T new tab · Ctrl+W close · Ctrl+L focus URL · Ctrl+Shift+N private window · Ctrl+Shift+P privacy dashboard · Ctrl+D bookmark · Ctrl+H history · Ctrl+J downloads · Ctrl+F find</p>
 </div>
 </main></body></html>"#,
         homepage = esc_html(&prefs.homepage),
@@ -231,19 +325,17 @@ pub fn downloads_html(entries: &[crate::store::DownloadRecord]) -> String {
     shell_page("Downloads", &format!(r#"<div class="list">{rows}</div>"#))
 }
 
+const LANDING_HTML: &str = include_str!("../../../resources/landing.html");
+
 pub fn about_html(webkit_version: &str) -> String {
-    shell_page(
-        "About Cactus",
-        &format!(
-            r#"
-<p>Cactus {version} — a native Linux-first browser.</p>
-<p class="muted">Engine: WebKitGTK {webkit}<br/>UI: GTK4 + libadwaita<br/>License: MPL-2.0<br/>Telemetry: none</p>
-<p>Built for Wayland-first desktops, XDG paths, and privacy defaults that stay out of your way.</p>
-"#,
-            version = crate::APP_VERSION,
-            webkit = esc_html(webkit_version),
-        ),
-    )
+    landing_html(webkit_version)
+}
+
+/// Open-source project landing page (`resources/landing.html`), also served at `cactus://about`.
+pub fn landing_html(webkit_version: &str) -> String {
+    LANDING_HTML
+        .replace("{{APP_VERSION}}", crate::APP_VERSION)
+        .replace("{{WEBKIT_VERSION}}", &esc_html(webkit_version))
 }
 
 pub fn error_html(title: &str, message: &str, uri: &str) -> String {
@@ -292,4 +384,19 @@ fn esc_html(s: &str) -> String {
 
 fn esc_attr(s: &str) -> String {
     esc_html(s).replace('\'', "&#39;")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prefs::Preferences;
+
+    #[test]
+    fn privacy_page_includes_session_counts() {
+        let html = privacy_html(&Preferences::default(), 42, 1000, 7, true, &[]);
+        assert!(html.contains("Privacy dashboard"));
+        assert!(html.contains("42"));
+        assert!(html.contains("1000"));
+        assert!(html.contains("Filter lists loaded"));
+    }
 }

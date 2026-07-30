@@ -70,6 +70,10 @@ impl PrivacyEngine {
         self.stats.snapshot()
     }
 
+    pub fn engine_loaded(&self) -> bool {
+        self.engine.borrow().is_some()
+    }
+
     /// Build the engine on the calling thread (must be the GTK main thread).
     pub fn load(&self, paths: &AppPaths) -> Result<()> {
         let manager = FilterListManager::new(paths);

@@ -60,7 +60,7 @@ fn needs_refresh(path: &PathBuf) -> bool {
 
 fn download(url: &str, dest: &PathBuf) -> Result<()> {
     let response = ureq::get(url)
-        .set("User-Agent", "Cactus/0.1 (+https://cactus.browser)")
+        .set("User-Agent", "Cactus/1.2 (+https://cactus-browser.tech)")
         .call()
         .with_context(|| format!("GET {url}"))?;
     let text = response.into_string().context("reading filter body")?;

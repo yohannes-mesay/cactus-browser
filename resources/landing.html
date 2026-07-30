@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Cactus Browser — a native Linux web browser. Rust, WebKitGTK, privacy by default, MPL-2.0."/>
+  <title>Cactus Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --ink: #2c261f;
+      --ink-soft: #5e564c;
+      --paper: #f2ebe1;
+      --paper-deep: #e5ddd1;
+      --espresso: #14110e;
+      --espresso-lift: #1f1a15;
+      --hair: rgba(44, 38, 31, 0.12);
+      --hair-on-dark: rgba(242, 235, 225, 0.1);
+      --amber: #b8892e;
+      --amber-hi: #d4a24c;
+      --amber-glow: rgba(184, 137, 46, 0.18);
+      --amber-line: rgba(184, 137, 46, 0.45);
+      --sage: #5a8f6a;
+      --serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+      --sans: "Manrope", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --gutter: clamp(24px, 5vw, 56px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--paper);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .hero-title { animation: none; opacity: 1; }
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--ink);
+      background: var(--paper);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection {
+      background: rgba(212, 162, 76, 0.35);
+      color: var(--ink);
+    }
+
+    a {
+      color: var(--amber);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.22em;
+    }
+
+    a:hover { color: #8a6914; }
+
+    a:focus-visible {
+      outline: 2px solid var(--amber-hi);
+      outline-offset: 3px;
+    }
+
+    .frame {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    @media (min-width: 960px) {
+      .frame {
+        grid-template-columns: 240px minmax(0, 1fr);
+      }
+    }
+
+    /* —— Sidebar —— */
+    .rail {
+      padding: 32px clamp(20px, 4vw, 28px);
+      border-bottom: 1px solid var(--hair);
+    }
+
+    @media (min-width: 960px) {
+      .rail {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        border-bottom: none;
+        border-right: 1px solid var(--hair);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding-top: 40px;
+        padding-bottom: 36px;
+      }
+    }
+
+    .rail-mark {
+      display: block;
+      color: var(--ink);
+      text-decoration: none;
+      margin-bottom: 36px;
+    }
+
+    .rail-mark:hover { color: var(--ink); }
+
+    .rail-mark svg {
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+
+    .rail-mark strong {
+      display: block;
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .rail-mark span {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .rail-nav {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.84rem;
+      font-weight: 500;
+    }
+
+    @media (min-width: 960px) {
+      .rail-nav { display: flex; }
+    }
+
+    .rail-nav a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 8px 0;
+      width: fit-content;
+      border-bottom: 1px solid transparent;
+    }
+
+    .rail-nav a:hover {
+      color: var(--ink);
+      border-color: var(--amber);
+    }
+
+    .rail-foot {
+      font-size: 0.75rem;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      margin-top: 28px;
+    }
+
+    @media (min-width: 960px) {
+      .rail-foot { margin-top: 0; }
+    }
+
+    .rail-foot .domain {
+      display: block;
+      margin-top: 6px;
+      color: var(--amber);
+      font-weight: 500;
+    }
+
+    .mobile-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    @media (min-width: 960px) {
+      .mobile-nav { display: none; }
+    }
+
+    .mobile-nav a {
+      color: var(--ink-soft);
+      text-decoration: none;
+    }
+
+    /* —— Main —— */
+    .main { min-width: 0; }
+
+    .hero {
+      position: relative;
+      padding: clamp(36px, 6vw, 56px) var(--gutter) clamp(40px, 7vw, 64px);
+      border-bottom: 1px solid var(--hair);
+      overflow: hidden;
+    }
+
+    .hero-deco {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .hero-deco .wave {
+      position: absolute;
+      left: -5%;
+      right: -5%;
+      bottom: 18%;
+      height: 140px;
+    }
+
+    .hero-deco .arch {
+      position: absolute;
+      right: 2%;
+      top: 6%;
+      width: min(140px, 22vw);
+      height: min(260px, 42vh);
+      border: 1px solid var(--amber-line);
+      border-bottom: none;
+      border-radius: 999px 999px 0 0;
+      opacity: 0.35;
+    }
+
+    @media (max-width: 960px) {
+      .hero-deco .arch { display: none; }
+    }
+
+    .hero-meta {
+      position: relative;
+      z-index: 1;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--ink-soft);
+      margin: 0 0 clamp(20px, 3vw, 28px);
+    }
+
+    .hero-meta-label {
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero-meta-engine {
+      letter-spacing: 0.01em;
+      text-transform: none;
+      font-weight: 500;
+    }
+
+    .hero-title {
+      position: relative;
+      z-index: 1;
+      font-family: var(--serif);
+      font-weight: 700;
+      font-optical-sizing: auto;
+      font-variation-settings: "SOFT" 50, "WONK" 0.8;
+      font-size: clamp(3rem, 9vw, 5.5rem);
+      line-height: 0.95;
+      letter-spacing: -0.035em;
+      margin: 0;
+      max-width: 14ch;
+      opacity: 0;
+      animation: settle 1s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+    }
+
+    @keyframes settle {
+      to { opacity: 1; }
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 32px;
+      margin-top: clamp(28px, 5vw, 40px);
+      max-width: 920px;
+    }
+
+    @media (min-width: 768px) {
+      .hero-grid {
+        grid-template-columns: 1fr min(300px, 36%);
+        align-items: start;
+        gap: 40px;
+      }
+    }
+
+    .hero-lede {
+      margin: 0;
+      max-width: 42ch;
+      color: var(--ink-soft);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .hero-aside {
+      border-left: 2px solid var(--amber-hi);
+      padding: 4px 0 4px 22px;
+    }
+
+    .hero-aside p {
+      margin: 0 0 14px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .hero-aside p:last-child { margin-bottom: 0; }
+
+    .hero-links {
+      position: relative;
+      z-index: 1;
+      margin-top: 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px 28px;
+      align-items: baseline;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .hero-links a {
+      text-decoration: none;
+      color: var(--ink);
+      border-bottom: 2px solid var(--amber-hi);
+      padding-bottom: 3px;
+    }
+
+    .hero-links a:hover {
+      border-color: var(--amber);
+      color: var(--ink);
+    }
+
+    .hero-links .ghost {
+      font-weight: 500;
+      color: var(--ink-soft);
+      border-color: var(--hair);
+    }
+
+    /* —— Spec bar —— */
+    .spec-wrap {
+      padding: 0 var(--gutter);
+      border-bottom: 1px solid var(--hair);
+    }
+
+    .spec {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      border: 1px solid var(--hair);
+      border-bottom: none;
+      background: var(--paper);
+      margin: 0;
+    }
+
+    @media (min-width: 640px) {
+      .spec { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .spec div {
+      padding: 20px clamp(18px, 3vw, 28px);
+      border-right: 1px solid var(--hair);
+      border-bottom: 1px solid var(--hair);
+    }
+
+    @media (min-width: 640px) {
+      .spec div { border-bottom: none; }
+      .spec div:last-child { border-right: none; }
+    }
+
+    .spec dt {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin: 0 0 8px;
+    }
+
+    .spec dd {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* —— Sections —— */
+    .block {
+      padding: clamp(56px, 9vw, 96px) var(--gutter);
+      border-bottom: 1px solid var(--hair);
+    }
+
+    .block.dark {
+      background: var(--espresso);
+      color: var(--paper);
+      border-color: var(--hair-on-dark);
+    }
+
+    .block.dark a { color: var(--amber-hi); }
+    .block.dark a:hover { color: var(--paper); }
+    .block.dark .lead { color: rgba(242, 235, 225, 0.7); }
+
+    .block-title {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-variation-settings: "SOFT" 40, "WONK" 0.6;
+      font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      margin: 0 0 14px;
+      max-width: 20ch;
+    }
+
+    .lead {
+      margin: 0 0 clamp(32px, 5vw, 48px);
+      max-width: 46ch;
+      color: var(--ink-soft);
+      font-size: 1.02rem;
+    }
+
+    .bento {
+      display: grid;
+      gap: 1px;
+      background: var(--hair);
+      border: 1px solid var(--hair);
+      max-width: 960px;
+    }
+
+    @media (min-width: 800px) {
+      .bento {
+        grid-template-columns: 1.15fr 1fr;
+        grid-template-rows: auto auto;
+      }
+      .bento .cell-wide { grid-row: span 2; }
+    }
+
+    .cell {
+      background: var(--paper);
+      padding: clamp(22px, 3vw, 32px);
+    }
+
+    .cell h3 {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin: 0 0 10px;
+    }
+
+    .cell p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      max-width: 44ch;
+    }
+
+    .cell-wide p { font-size: 0.98rem; }
+
+    .cell code {
+      font-family: var(--mono);
+      font-size: 0.82em;
+      background: var(--paper-deep);
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    .block.dark .cell {
+      background: var(--espresso-lift);
+    }
+
+    .block.dark .cell p { color: rgba(242, 235, 225, 0.68); }
+    .block.dark .cell code {
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--paper);
+    }
+
+    .strata {
+      max-width: 720px;
+    }
+
+    .stratum {
+      display: grid;
+      gap: 8px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--hair-on-dark);
+    }
+
+    @media (min-width: 600px) {
+      .stratum {
+        grid-template-columns: 148px 1fr;
+        gap: 28px;
+      }
+    }
+
+    .stratum:last-child { border-bottom: 0; }
+
+    .stratum code {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--amber-hi);
+    }
+
+    .stratum p {
+      margin: 0;
+      font-size: 0.94rem;
+      color: rgba(242, 235, 225, 0.65);
+    }
+
+    .team-quote {
+      margin: 0;
+      padding: 0;
+      border: none;
+      font-family: var(--serif);
+      font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+      font-weight: 500;
+      font-style: italic;
+      font-variation-settings: "SOFT" 100;
+      line-height: 1.45;
+      max-width: 30ch;
+      color: var(--ink);
+    }
+
+    .team-rest {
+      margin-top: 24px;
+      max-width: 46ch;
+      color: var(--ink-soft);
+      font-size: 0.94rem;
+    }
+
+    .install-split {
+      display: grid;
+      gap: 40px;
+      max-width: 960px;
+    }
+
+    @media (min-width: 860px) {
+      .install-split {
+        grid-template-columns: 0.9fr 1.1fr;
+      }
+    }
+
+    .install-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+    }
+
+    .install-list li {
+      padding: 12px 0;
+      border-top: 1px solid var(--hair);
+    }
+
+    .codeblock {
+      background: var(--espresso);
+      border: 1px solid var(--hair);
+    }
+
+    .codeblock-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--hair-on-dark);
+      color: rgba(242, 235, 225, 0.45);
+    }
+
+    .codeblock pre {
+      margin: 0;
+      padding: 22px 18px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      line-height: 1.75;
+      color: #c4b8a8;
+      overflow-x: auto;
+    }
+
+    .codeblock .c { color: #6a6258; }
+    .codeblock .k { color: var(--amber-hi); }
+
+    .end {
+      padding: 48px var(--gutter) 72px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 24px;
+      font-size: 0.84rem;
+    }
+
+    .end-brand {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 1.25rem;
+      margin: 0 0 6px;
+    }
+
+    .end-domain {
+      margin: 0;
+      color: var(--amber);
+      font-weight: 500;
+    }
+
+    .end-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      font-weight: 500;
+    }
+
+    .end-nav a { text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <aside class="rail">
+      <div>
+        <a class="rail-mark" href="#top">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" aria-hidden="true">
+            <rect width="128" height="128" fill="#f2ebe1"/>
+            <path d="M64 24c-9 0-16 7-16 16v34c-9-5-20-4-20 9 0 7 5 13 12 13h7v9c0 7 5 12 12 12h7c7 0 12-5 12-12V40c0-9-7-16-16-16zm16 26c0-5 4-9 9-9s9 4 9 9v16c0 7-5 11-11 11h-7V50z" fill="none" stroke="#b8892e" stroke-width="3.5" stroke-linejoin="round"/>
+            <circle cx="57" cy="47" r="2.5" fill="#5a8f6a"/>
+            <circle cx="68" cy="58" r="2" fill="#b8892e"/>
+          </svg>
+          <strong>Cactus</strong>
+          <span>Browser for Linux</span>
+        </a>
+        <nav class="mobile-nav" aria-label="Sections">
+          <a href="#product">Product</a>
+          <a href="#source">Crates</a>
+          <a href="#team">Contributors</a>
+          <a href="#install">Build</a>
+        </nav>
+        <nav class="rail-nav" aria-label="Sections">
+          <a href="#product">What it does</a>
+          <a href="#source">Crates</a>
+          <a href="#team">Contributors</a>
+          <a href="#install">Build</a>
+        </nav>
+      </div>
+      <p class="rail-foot">
+        <span id="rail-version">1.2.0</span><br/>
+        MPL-2.0<br/>
+        <span class="domain">cactus-browser.tech</span>
+      </p>
+    </aside>
+
+    <div class="main" id="top">
+      <header class="hero">
+        <div class="hero-deco" aria-hidden="true">
+          <svg class="wave" viewBox="0 0 1200 140" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 100 C200 20 400 120 600 60 S1000 20 1200 80" fill="none" stroke="#b8892e" stroke-width="1" opacity="0.35"/>
+            <path d="M0 110 C250 40 450 100 650 70 S950 50 1200 90" fill="none" stroke="#d4a24c" stroke-width="0.75" opacity="0.25"/>
+          </svg>
+          <div class="arch"></div>
+        </div>
+        <p class="hero-meta" id="hero-meta">
+          <span class="hero-meta-label">Release {{APP_VERSION}}</span>
+          <span aria-hidden="true"> · </span>
+          <span class="hero-meta-engine" id="hero-engine">WebKitGTK {{WEBKIT_VERSION}}</span>
+        </p>
+        <h1 class="hero-title">Cactus Browser</h1>
+        <div class="hero-grid">
+          <p class="hero-lede">
+            A native daily driver for Linux: Rust and libadwaita around WebKitGTK.
+            Blocking and HTTPS defaults are on from the first launch. Nothing phones home.
+          </p>
+          <aside class="hero-aside" id="status">
+            <p>Telemetry stays at zero. Counters live in your SQLite file, not a vendor dashboard.</p>
+            <p>Config under XDG paths. Private windows use a separate network session.</p>
+          </aside>
+        </div>
+        <div class="hero-links">
+          <a href="#install">Build the release binary</a>
+          <a class="ghost" href="https://github.com/cactus-browser/cactus" rel="noopener">GitHub repository</a>
+          <a class="ghost" href="https://cactus-browser.tech">cactus-browser.tech</a>
+        </div>
+      </header>
+
+      <div class="spec-wrap">
+        <dl class="spec" aria-label="Project snapshot">
+          <div>
+            <dt>Status</dt>
+            <dd>active dev</dd>
+          </div>
+          <div>
+            <dt>License</dt>
+            <dd>MPL-2.0</dd>
+          </div>
+          <div>
+            <dt>UI stack</dt>
+            <dd>GTK4 · Adw</dd>
+          </div>
+          <div>
+            <dt>Engine</dt>
+            <dd id="spec-engine">WebKitGTK</dd>
+          </div>
+        </dl>
+      </div>
+
+      <section class="block" id="product">
+        <h2 class="block-title">Quiet by default, capable when you need it</h2>
+        <p class="lead">Version 1.2 adds a live privacy dashboard and session stats on the new tab page—still aimed at GNOME users who want sane defaults without another Chromium fork.</p>
+        <div class="bento">
+          <article class="cell cell-wide">
+            <h3>Request policy</h3>
+            <p>EasyList and EasyPrivacy through Brave’s adblock engine, plus cosmetic filtering. HTTPS-First, DNT, and Global Privacy Control. Per-site allowlists when you trust a publisher.</p>
+          </article>
+          <article class="cell">
+            <h3>Native shell</h3>
+            <p>Multi-window tabs, bookmark bar, session restore, find-in-page, zoom, and shortcuts that match habit.</p>
+          </article>
+          <article class="cell">
+            <h3>On disk</h3>
+            <p><code>~/.config/cactus</code> for prefs, <code>~/.local/share/cactus</code> for data. Auditable, portable, yours.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="block dark" id="source">
+        <h2 class="block-title">Source layout</h2>
+        <p class="lead">Five crates in one workspace so changes stay localized.</p>
+        <div class="strata">
+          <div class="stratum">
+            <code>cactus</code>
+            <p>CLI entry: URLs, <code>--private</code>, <code>--no-restore</code>.</p>
+          </div>
+          <div class="stratum">
+            <code>cactus-ui</code>
+            <p>Windows, tab view, omnibox UI, settings, keybindings.</p>
+          </div>
+          <div class="stratum">
+            <code>cactus-webkit</code>
+            <p>WebView, sessions, blocking hooks, download pipeline.</p>
+          </div>
+          <div class="stratum">
+            <code>cactus-privacy</code>
+            <p>Lists, allowlist, on-device stats.</p>
+          </div>
+          <div class="stratum">
+            <code>cactus-core</code>
+            <p>Prefs, SQLite, omnibox ranking, bookmarks, permissions.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="block" id="team">
+        <h2 class="block-title">Contributors</h2>
+        <blockquote class="team-quote">
+          We ship a browser we want on our own machines — in the open, under MPL-2.0.
+        </blockquote>
+        <p class="team-rest">
+          Amber accents mark the team on this site; sage green on the icon is the plant. Pull requests and bug reports are welcome on GitHub.
+        </p>
+      </section>
+
+      <section class="block" id="install">
+        <h2 class="block-title">Build from source</h2>
+        <div class="install-split">
+          <div>
+            <p class="lead" style="margin-bottom: 0;">Install dev packages for GTK4, libadwaita, WebKitGTK 6, and SQLite. Use rustup stable, then compile at the repo root.</p>
+            <ul class="install-list">
+              <li>Flatpak manifest in <code>flatpak/org.cactus.Browser.yml</code></li>
+              <li><code>source scripts/env.sh</code> when headers live in <code>.deps/</code></li>
+              <li>Internal URIs: <code>cactus://settings</code>, history, bookmarks</li>
+            </ul>
+          </div>
+          <div class="codeblock">
+            <div class="codeblock-label">shell</div>
+            <pre><span class="c"># Debian / Ubuntu (example)</span>
+<span class="k">sudo apt install</span> build-essential pkg-config \
+  libgtk-4-dev libadwaita-1-dev \
+  libwebkitgtk-6.0-dev libsqlite3-dev
+
+<span class="k">cargo build</span> --release
+<span class="k">./target/release/cactus</span></pre>
+          </div>
+        </div>
+      </section>
+
+      <footer class="end">
+        <div>
+          <p class="end-brand">Cactus Browser</p>
+          <p class="end-domain">cactus-browser.tech</p>
+        </div>
+        <nav class="end-nav" aria-label="Footer">
+          <a href="https://github.com/cactus-browser/cactus">GitHub</a>
+          <a href="cactus://newtab">New tab</a>
+          <a href="cactus://settings">Settings</a>
+          <a href="cactus://about">About</a>
+        </nav>
+      </footer>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var meta = document.getElementById("hero-meta");
+      var engine = document.getElementById("spec-engine");
+      var railVer = document.getElementById("rail-version");
+      var heroEngine = document.getElementById("hero-engine");
+      if (heroEngine && heroEngine.textContent.indexOf("{{") !== -1) {
+        heroEngine.textContent = "WebKitGTK 6";
+      }
+      if (meta && meta.textContent.indexOf("{{") !== -1) {
+        var label = meta.querySelector(".hero-meta-label");
+        if (label) label.textContent = "Release 1.2.0";
+        if (engine) engine.textContent = "WebKitGTK 6";
+      } else if (meta) {
+        var labelEl = meta.querySelector(".hero-meta-label");
+        var vm = labelEl && labelEl.textContent.match(/Release\s+(\S+)/);
+        if (vm && railVer) railVer.textContent = vm[1];
+        var engText = heroEngine ? heroEngine.textContent : "";
+        var wm = engText.match(/WebKitGTK\s+(.+)$/i);
+        if (wm && engine) engine.textContent = "WebKitGTK " + wm[1].trim();
+      }
+    })();
+  </script>
+</body>
+</html>

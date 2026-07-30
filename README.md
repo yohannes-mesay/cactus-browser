@@ -14,21 +14,23 @@ Linux users are stuck between heavy Chromium clones and browsers that feel poorl
 - Stores data under XDG paths (`~/.config/cactus`, `~/.local/share/cactus`)
 - Ships **zero first-party telemetry**
 
-## Features (v0.1)
+## Features (v1.2)
 
 - Multi-window / multi-tab browsing (`AdwTabView`)
 - Omnibox (URL + search), find-in-page, zoom
 - Bookmarks bar, history, downloads (with finished/failed status), session restore (active tab)
 - Private windows (ephemeral WebKit network session)
 - **Request policy blocking** for ads/trackers + cosmetic CSS filtering (EasyList / EasyPrivacy)
+- **Privacy dashboard** (`cactus://privacy`) with live session block/cosmetic counters and allowlist view
+- New tab shows a privacy summary link; project landing at `cactus://about`
 - Per-site privacy allowlist, local privacy/stats counters (never phoned home)
 - GTK settings dialog (search engine, HTTPS-First, JS, zoom, session, etc.)
 - Netscape bookmark import/export helpers
 - Site permission store (notifications / geo / media / …)
 - Omnibox suggestion ranking (history + bookmarks + search)
 - CLI: `cactus [URL...] [--private] [--no-restore] [-v]`
-- Internal pages: `cactus://newtab`, `settings`, `history`, `bookmarks`, `downloads`, `about`
-- Keyboard shortcuts: `Ctrl+T/W/L/R`, `Ctrl+Tab`, `Alt+←/→`, `Ctrl+Shift+N`, `Ctrl+D/H/J/F`
+- Internal pages: `cactus://newtab`, `privacy`, `settings`, `history`, `bookmarks`, `downloads`, `about`
+- Keyboard shortcuts: `Ctrl+T/W/L/R`, `Ctrl+Tab`, `Alt+←/→`, `Ctrl+Shift+N`, `Ctrl+Shift+P` (privacy), `Ctrl+D/H/J/F`
 
 ## Requirements
 
