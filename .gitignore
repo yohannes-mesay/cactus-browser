@@ -1,4 +1,5 @@
 /target
+/site
 /.deps
 **/*.rs.bk
 .idea/
