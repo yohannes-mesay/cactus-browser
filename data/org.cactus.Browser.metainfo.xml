@@ -16,6 +16,8 @@
   </description>
   <launchable type="desktop-id">org.cactus.Browser.desktop</launchable>
   <url type="homepage">https://cactus-browser.tech</url>
+  <url type="vcs-browser">https://github.com/yohannes-mesay/cactus-browser</url>
+  <url type="bugtracker">https://github.com/yohannes-mesay/cactus-browser/issues</url>
   <categories>
     <category>Network</category>
     <category>WebBrowser</category>
@@ -24,7 +26,7 @@
     <binary>cactus</binary>
   </provides>
   <releases>
-    <release version="1.2.0" date="2026-10-14">
+    <release version="1.2.0" date="2026-08-13">
       <description>
         <p>Privacy dashboard with live session stats, new-tab privacy summary, project landing page, and Ctrl+Shift+P shortcut.</p>
       </description>

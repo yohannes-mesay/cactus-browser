@@ -2,6 +2,14 @@
 
 **Cactus** is a native, Linux-first web browser written in Rust.
 
+| | |
+| --- | --- |
+| Website | [cactus-browser.tech](https://cactus-browser.tech) |
+| Repository | [github.com/yohannes-mesay/cactus-browser](https://github.com/yohannes-mesay/cactus-browser) |
+| Issues | [Report a bug](https://github.com/yohannes-mesay/cactus-browser/issues) |
+| Releases | [GitHub Releases](https://github.com/yohannes-mesay/cactus-browser/releases) |
+| License | MPL-2.0 |
+
 It wraps **WebKitGTK 6** with a **GTK4 + libadwaita** chrome — Wayland-first, XDG-correct, privacy-on by default, and not another Chromium skin.
 
 ## Why Cactus

@@ -6,6 +6,7 @@ pub mod metrics;
 pub mod omnibox;
 pub mod paths;
 pub mod permissions;
+pub mod project;
 pub mod prefs;
 pub mod sanitize;
 pub mod search;
@@ -26,3 +27,5 @@ pub const APP_NAME: &str = "Cactus";
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const NEW_TAB_URI: &str = "cactus://newtab";
 pub const HOME_URI: &str = "cactus://newtab";
+
+pub use project::{GITHUB_DOCS_README, GITHUB_ISSUES, GITHUB_RELEASES, GITHUB_REPO, HOMEPAGE};

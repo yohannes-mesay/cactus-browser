@@ -1,6 +1,7 @@
 //! Built-in `cactus://` pages rendered as data URIs / HTML strings.
 
 use crate::prefs::Preferences;
+use crate::project::{GITHUB_ISSUES, GITHUB_REPO, GITHUB_RELEASES, HOMEPAGE};
 use crate::store::{Bookmark, HistoryEntry};
 
 pub fn is_internal(uri: &str) -> bool {
@@ -119,6 +120,12 @@ pub fn newtab_html(
   .muted {{ color: var(--muted); }}
   .privacy-strip {{ font-size: 0.9rem; margin: -16px 0 28px; }}
   .privacy-strip a {{ color: var(--accent); }}
+  .site-foot {{
+    margin-top: 48px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.88rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 16px;
+  }}
+  .site-foot a {{ color: var(--accent); text-decoration: none; }}
+  .site-foot a:hover {{ text-decoration: underline; }}
 </style>
 </head>
 <body>
@@ -134,6 +141,7 @@ pub fn newtab_html(
   <div class="chips">{bookmarks_html}</div>
   <h2>Recent</h2>
   <div class="list">{history_html}</div>
+  {site_footer}
 </main>
 <script>
 document.querySelector('form').addEventListener('submit', (e) => {{
@@ -146,6 +154,7 @@ document.querySelector('form').addEventListener('submit', (e) => {{
 </html>"#,
         blocked = blocked_count,
         cosmetic = cosmetic_count,
+        site_footer = site_footer_html(),
     )
 }
 
@@ -189,7 +198,8 @@ pub fn privacy_html(
 <h2>Allowlist</h2>
 <div class="list">{allowlist_rows}</div>
 <p class="muted">Allow a site from the app menu when blocking breaks a page you trust. Stored in <code>~/.local/share/cactus/cactus.db</code>.</p>
-<p><a href="cactus://settings">Open settings</a> · <a href="cactus://newtab">New tab</a></p>
+<p><a href="cactus://settings">Open settings</a> · <a href="cactus://newtab">New tab</a> · <a href="cactus://about">About Cactus</a></p>
+{site_footer}
 "#,
         blocked = blocked,
         allowed = allowed,
@@ -200,6 +210,7 @@ pub fn privacy_html(
         https = prefs.https_first,
         dnt = prefs.send_dnt,
         gpc = prefs.send_gpc,
+        site_footer = site_footer_html(),
     );
 
     privacy_shell_page(&body)
@@ -227,6 +238,8 @@ h2{{font-size:0.95rem;margin:0 0 12px;font-weight:600}}
 .row span{{color:#93a59a;font-size:0.85rem}}
 a{{color:#3ecf8e}}
 code{{background:#1b2420;padding:2px 6px;border-radius:4px;font-size:0.85em}}
+.site-foot{{margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:0.88rem;color:#93a59a;display:flex;flex-wrap:wrap;gap:8px 14px}}
+.site-foot a{{color:#3ecf8e;text-decoration:none}}
 </style></head>
 <body><main><h1>Privacy dashboard</h1>{body}</main></body></html>"#,
         body = body,
@@ -252,6 +265,8 @@ label{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1p
 label:last-child{{border:0}}
 .muted{{color:#999}}
 code{{background:#222;padding:2px 6px;border-radius:4px}}
+.site-foot{{margin-top:28px;padding-top:16px;border-top:1px solid #333;font-size:0.88rem;color:#999;display:flex;flex-wrap:wrap;gap:8px 14px}}
+.site-foot a{{color:#3ecf8e;text-decoration:none}}
 </style></head>
 <body><main>
 <h1>Settings</h1>
@@ -268,6 +283,7 @@ code{{background:#222;padding:2px 6px;border-radius:4px}}
 <div class="card">
 <p>Shortcuts: Ctrl+T new tab · Ctrl+W close · Ctrl+L focus URL · Ctrl+Shift+N private window · Ctrl+Shift+P privacy dashboard · Ctrl+D bookmark · Ctrl+H history · Ctrl+J downloads · Ctrl+F find</p>
 </div>
+{site_footer}
 </main></body></html>"#,
         homepage = esc_html(&prefs.homepage),
         engine = esc_html(engine),
@@ -276,6 +292,7 @@ code{{background:#222;padding:2px 6px;border-radius:4px}}
         block = prefs.block_ads_trackers,
         dnt = prefs.send_dnt,
         gpc = prefs.send_gpc,
+        site_footer = site_footer_html(),
     )
 }
 
@@ -336,6 +353,10 @@ pub fn landing_html(webkit_version: &str) -> String {
     LANDING_HTML
         .replace("{{APP_VERSION}}", crate::APP_VERSION)
         .replace("{{WEBKIT_VERSION}}", &esc_html(webkit_version))
+        .replace("{{GITHUB_REPO}}", GITHUB_REPO)
+        .replace("{{GITHUB_ISSUES}}", GITHUB_ISSUES)
+        .replace("{{GITHUB_RELEASES}}", GITHUB_RELEASES)
+        .replace("{{SITE_URL}}", HOMEPAGE)
 }
 
 pub fn error_html(title: &str, message: &str, uri: &str) -> String {
@@ -368,10 +389,30 @@ h1{{letter-spacing:-0.03em}}
 .row span{{color:#93a59a;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 a{{color:#3ecf8e}}
 code{{background:#1b2420;padding:2px 6px;border-radius:4px}}
+.site-foot{{margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);font-size:0.88rem;color:#93a59a;display:flex;flex-wrap:wrap;gap:8px 14px}}
+.site-foot a{{color:#3ecf8e;text-decoration:none}}
 </style></head>
-<body><main><h1>{title}</h1>{body}</main></body></html>"#,
+<body><main><h1>{title}</h1>{body}{site_footer}</main></body></html>"#,
         title = esc_html(title),
         body = body,
+        site_footer = site_footer_html(),
+    )
+}
+
+fn site_footer_html() -> String {
+    format!(
+        r#"<nav class="site-foot" aria-label="Project">
+<a href="cactus://about">About</a>
+<a href="cactus://privacy">Privacy</a>
+<a href="{repo}">GitHub</a>
+<a href="{issues}">Issues</a>
+<a href="{releases}">Releases</a>
+<a href="{site}">Website</a>
+</nav>"#,
+        repo = GITHUB_REPO,
+        issues = GITHUB_ISSUES,
+        releases = GITHUB_RELEASES,
+        site = HOMEPAGE,
     )
 }
 
@@ -398,5 +439,13 @@ mod tests {
         assert!(html.contains("42"));
         assert!(html.contains("1000"));
         assert!(html.contains("Filter lists loaded"));
+    }
+
+    #[test]
+    fn landing_page_uses_canonical_project_urls() {
+        let html = landing_html("2.44.0");
+        assert!(html.contains("github.com/yohannes-mesay/cactus-browser"));
+        assert!(!html.contains("{{GITHUB_REPO}}"));
+        assert!(html.contains("https://cactus-browser.tech"));
     }
 }

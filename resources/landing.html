@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="description" content="Cactus Browser — a native Linux web browser. Rust, WebKitGTK, privacy by default, MPL-2.0."/>
+  <meta name="description" content="Cactus Browser is a native Linux web browser. Rust, WebKitGTK, privacy by default, MPL-2.0."/>
+  <link rel="canonical" href="{{SITE_URL}}"/>
   <title>Cactus Browser</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -176,6 +177,30 @@
       margin-top: 6px;
       color: var(--amber);
       font-weight: 500;
+      text-decoration: none;
+    }
+
+    .rail-foot .domain:hover {
+      text-decoration: underline;
+    }
+
+    .block a:not(.ghost) {
+      color: var(--amber);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    .block.dark a {
+      color: var(--amber-hi);
+    }
+
+    .end-domain a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .end-domain a:hover {
+      text-decoration: underline;
     }
 
     .mobile-nav {
@@ -407,7 +432,14 @@
 
     .block.dark a { color: var(--amber-hi); }
     .block.dark a:hover { color: var(--paper); }
-    .block.dark .lead { color: rgba(242, 235, 225, 0.7); }
+    .block.dark .block-title { color: var(--paper); }
+    .block.dark .lead { color: rgba(242, 235, 225, 0.88); }
+    .block.dark .team-quote {
+      color: rgba(242, 235, 225, 0.96);
+    }
+    .block.dark .team-rest {
+      color: rgba(242, 235, 225, 0.82);
+    }
 
     .block-title {
       font-family: var(--serif);
@@ -534,6 +566,7 @@
       max-width: 46ch;
       color: var(--ink-soft);
       font-size: 0.94rem;
+      line-height: 1.65;
     }
 
     .install-split {
@@ -619,6 +652,125 @@
     }
 
     .end-nav a { text-decoration: none; }
+
+    .steps {
+      display: grid;
+      gap: 20px;
+      max-width: 960px;
+      counter-reset: step;
+    }
+
+    @media (min-width: 720px) {
+      .steps { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    }
+
+    .step {
+      counter-increment: step;
+      padding: 20px 0 0;
+      border-top: 1px solid var(--hair);
+    }
+
+    .step::before {
+      content: counter(step);
+      display: block;
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+
+    .step h3 {
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      margin: 0 0 8px;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+
+    .cta-band {
+      padding: clamp(48px, 8vw, 72px) var(--gutter);
+      background: var(--paper-deep);
+      border-top: 1px solid var(--hair);
+      border-bottom: 1px solid var(--hair);
+      text-align: center;
+    }
+
+    .cta-band h2 {
+      font-family: var(--serif);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      margin: 0 0 12px;
+      letter-spacing: -0.03em;
+    }
+
+    .cta-band p {
+      margin: 0 auto 24px;
+      max-width: 40ch;
+      color: var(--ink-soft);
+    }
+
+    .cta-band .hero-links {
+      justify-content: center;
+      margin-top: 0;
+    }
+
+    .spotlight {
+      max-width: 960px;
+      padding: 24px 28px;
+      background: var(--paper-deep);
+      border: 1px solid var(--hair);
+      border-radius: 4px;
+    }
+
+    .spotlight h3 {
+      font-family: var(--serif);
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+    }
+
+    .spotlight p {
+      margin: 0 0 12px;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+
+    .spotlight p:last-child { margin-bottom: 0; }
+
+    .pillars {
+      display: grid;
+      gap: 1px;
+      background: var(--hair);
+      border: 1px solid var(--hair);
+      max-width: 960px;
+    }
+
+    @media (min-width: 720px) {
+      .pillars { grid-template-columns: 1fr 1fr; }
+    }
+
+    .pillar {
+      background: var(--paper);
+      padding: 24px 26px;
+    }
+
+    .pillar h3 {
+      font-family: var(--serif);
+      font-size: 1.08rem;
+      margin: 0 0 8px;
+    }
+
+    .pillar p {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      max-width: 44ch;
+    }
   </style>
 </head>
 <body>
@@ -637,21 +789,23 @@
         </a>
         <nav class="mobile-nav" aria-label="Sections">
           <a href="#product">Product</a>
-          <a href="#source">Crates</a>
-          <a href="#team">Contributors</a>
-          <a href="#install">Build</a>
+          <a href="#features">Features</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#why">Why</a>
+          <a href="#install">Download</a>
         </nav>
         <nav class="rail-nav" aria-label="Sections">
-          <a href="#product">What it does</a>
-          <a href="#source">Crates</a>
-          <a href="#team">Contributors</a>
-          <a href="#install">Build</a>
+          <a href="#product">Product</a>
+          <a href="#features">Features</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#why">Why Cactus</a>
+          <a href="#install">Download</a>
         </nav>
       </div>
       <p class="rail-foot">
         <span id="rail-version">1.2.0</span><br/>
         MPL-2.0<br/>
-        <span class="domain">cactus-browser.tech</span>
+        <a class="domain" href="{{SITE_URL}}">cactus-browser.tech</a>
       </p>
     </aside>
 
@@ -672,34 +826,34 @@
         <h1 class="hero-title">Cactus Browser</h1>
         <div class="hero-grid">
           <p class="hero-lede">
-            A native daily driver for Linux: Rust and libadwaita around WebKitGTK.
-            Blocking and HTTPS defaults are on from the first launch. Nothing phones home.
+            A native browser for Linux desktops. WebKitGTK for the web, GTK4 and libadwaita for the shell,
+            and privacy controls you can review on your own machine. Version 1.2 is available for builders who compile from source.
           </p>
           <aside class="hero-aside" id="status">
-            <p>Telemetry stays at zero. Counters live in your SQLite file, not a vendor dashboard.</p>
-            <p>Config under XDG paths. Private windows use a separate network session.</p>
+            <p>Network blocking, HTTPS-First, and session privacy stats in the built-in dashboard.</p>
+            <p>Open source under MPL-2.0. No account required to browse.</p>
           </aside>
         </div>
         <div class="hero-links">
-          <a href="#install">Build the release binary</a>
-          <a class="ghost" href="https://github.com/cactus-browser/cactus" rel="noopener">GitHub repository</a>
-          <a class="ghost" href="https://cactus-browser.tech">cactus-browser.tech</a>
+          <a href="#install">Get started</a>
+          <a class="ghost" href="{{GITHUB_REPO}}" rel="noopener noreferrer">View on GitHub</a>
+          <a class="ghost" href="{{SITE_URL}}" rel="noopener noreferrer">Website</a>
         </div>
       </header>
 
       <div class="spec-wrap">
-        <dl class="spec" aria-label="Project snapshot">
+        <dl class="spec" aria-label="At a glance">
           <div>
-            <dt>Status</dt>
-            <dd>active dev</dd>
+            <dt>Version</dt>
+            <dd id="spec-version">{{APP_VERSION}}</dd>
+          </div>
+          <div>
+            <dt>Telemetry</dt>
+            <dd>None</dd>
           </div>
           <div>
             <dt>License</dt>
             <dd>MPL-2.0</dd>
-          </div>
-          <div>
-            <dt>UI stack</dt>
-            <dd>GTK4 · Adw</dd>
           </div>
           <div>
             <dt>Engine</dt>
@@ -709,75 +863,106 @@
       </div>
 
       <section class="block" id="product">
-        <h2 class="block-title">Quiet by default, capable when you need it</h2>
-        <p class="lead">Version 1.2 adds a live privacy dashboard and session stats on the new tab page—still aimed at GNOME users who want sane defaults without another Chromium fork.</p>
+        <h2 class="block-title">Designed for clarity</h2>
+        <p class="lead">Strong defaults, transparent behavior, and a stack chosen for Linux rather than ported from elsewhere.</p>
+        <div class="pillars">
+          <article class="pillar">
+            <h3>Protection by default</h3>
+            <p>EasyList and EasyPrivacy load on first run. HTTPS-First, DNT, and Global Privacy Control are enabled unless you change them.</p>
+          </article>
+          <article class="pillar">
+            <h3>Visible privacy</h3>
+            <p>The privacy dashboard at <code>cactus://privacy</code> shows session blocks and cosmetic rules applied. Data stays in your local profile.</p>
+          </article>
+          <article class="pillar">
+            <h3>Local by design</h3>
+            <p>Bookmarks, history, and preferences live under standard XDG paths. No cloud account or sync service is required.</p>
+          </article>
+          <article class="pillar">
+            <h3>Native shell</h3>
+            <p>libadwaita windows, Wayland-friendly workflows, and WebKitGTK for rendering. Built to feel at home on GNOME.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="block" id="features">
+        <h2 class="block-title">Built for real daily use</h2>
+        <p class="lead">Tabs, bookmarks, history, downloads, and private windows. Daily-driver basics without pretending to be a platform.</p>
         <div class="bento">
           <article class="cell cell-wide">
-            <h3>Request policy</h3>
-            <p>EasyList and EasyPrivacy through Brave’s adblock engine, plus cosmetic filtering. HTTPS-First, DNT, and Global Privacy Control. Per-site allowlists when you trust a publisher.</p>
+            <h3>Stays out of your way</h3>
+            <p>Multi-window tabs, bookmark bar, session restore, find-in-page, zoom, and keyboard shortcuts you already know. libadwaita UI that feels at home on modern GNOME.</p>
           </article>
           <article class="cell">
-            <h3>Native shell</h3>
-            <p>Multi-window tabs, bookmark bar, session restore, find-in-page, zoom, and shortcuts that match habit.</p>
+            <h3>Blocks by default</h3>
+            <p>EasyList and EasyPrivacy, cosmetic filtering, HTTPS-First, DNT, and Global Privacy Control. Allowlist a site when you need an exception.</p>
           </article>
           <article class="cell">
-            <h3>On disk</h3>
-            <p><code>~/.config/cactus</code> for prefs, <code>~/.local/share/cactus</code> for data. Auditable, portable, yours.</p>
+            <h3>Your files, your paths</h3>
+            <p>Config in <code>~/.config/cactus</code>, data in <code>~/.local/share/cactus</code>. Plain SQLite and TOML you can inspect and back up.</p>
           </article>
         </div>
       </section>
 
-      <section class="block dark" id="source">
-        <h2 class="block-title">Source layout</h2>
-        <p class="lead">Five crates in one workspace so changes stay localized.</p>
-        <div class="strata">
-          <div class="stratum">
-            <code>cactus</code>
-            <p>CLI entry: URLs, <code>--private</code>, <code>--no-restore</code>.</p>
-          </div>
-          <div class="stratum">
-            <code>cactus-ui</code>
-            <p>Windows, tab view, omnibox UI, settings, keybindings.</p>
-          </div>
-          <div class="stratum">
-            <code>cactus-webkit</code>
-            <p>WebView, sessions, blocking hooks, download pipeline.</p>
-          </div>
-          <div class="stratum">
-            <code>cactus-privacy</code>
-            <p>Lists, allowlist, on-device stats.</p>
-          </div>
-          <div class="stratum">
-            <code>cactus-core</code>
-            <p>Prefs, SQLite, omnibox ranking, bookmarks, permissions.</p>
-          </div>
+      <section class="block" id="privacy">
+        <h2 class="block-title">Privacy you can actually see</h2>
+        <p class="lead">New in 1.2: a dashboard that shows what protection did this session, on your machine only.</p>
+        <div class="spotlight">
+          <h3>Privacy dashboard</h3>
+          <p>Open <code>cactus://privacy</code> or press Ctrl+Shift+P to see blocked network requests, cosmetic cleanups, and your allowlist. Counts reset when you quit. Nothing is uploaded.</p>
+          <p>The new tab page links to the same summary so you always know the browser is working for you, not reporting on you.</p>
         </div>
       </section>
 
-      <section class="block" id="team">
-        <h2 class="block-title">Contributors</h2>
+      <section class="block" id="why">
+        <h2 class="block-title">Why we built Cactus</h2>
+        <p class="lead">We wanted a browser that respects the Linux desktop, keeps privacy tools understandable, and stays small enough for contributors to audit.</p>
+        <div class="steps">
+          <article class="step">
+            <h3>Native first</h3>
+            <p>GTK4 and libadwaita, Wayland-friendly, XDG paths. Not Electron. Not a cross-platform afterthought.</p>
+          </article>
+          <article class="step">
+            <h3>Open by default</h3>
+            <p>Rust workspace on <a href="{{GITHUB_REPO}}">GitHub</a> under MPL-2.0. Flatpak manifest included. <a href="{{GITHUB_ISSUES}}">Contributors welcome</a>.</p>
+          </article>
+          <article class="step">
+            <h3>Honest scope</h3>
+            <p>A focused browser: tabs, privacy, and desktop integration. Not a platform play.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="block dark" id="team">
+        <h2 class="block-title">From the team</h2>
         <blockquote class="team-quote">
-          We ship a browser we want on our own machines — in the open, under MPL-2.0.
+          We use Cactus on our own machines and ship fixes in the open.
         </blockquote>
         <p class="team-rest">
-          Amber accents mark the team on this site; sage green on the icon is the plant. Pull requests and bug reports are welcome on GitHub.
+          Cactus is maintained by contributors who care about Linux desktops.
+          <a href="{{GITHUB_ISSUES}}">Report issues</a> or open a pull request on
+          <a href="{{GITHUB_REPO}}">GitHub</a>. Amber on this site is our team accent; green on the icon is the cactus.
         </p>
       </section>
 
       <section class="block" id="install">
-        <h2 class="block-title">Build from source</h2>
+        <h2 class="block-title">Download and build</h2>
         <div class="install-split">
           <div>
-            <p class="lead" style="margin-bottom: 0;">Install dev packages for GTK4, libadwaita, WebKitGTK 6, and SQLite. Use rustup stable, then compile at the repo root.</p>
+            <p class="lead" style="margin-bottom: 0;">Install GTK4, libadwaita, WebKitGTK 6, and SQLite dev packages, then build with stable Rust. Early releases are source-first while we prepare packaged installs.</p>
             <ul class="install-list">
-              <li>Flatpak manifest in <code>flatpak/org.cactus.Browser.yml</code></li>
-              <li><code>source scripts/env.sh</code> when headers live in <code>.deps/</code></li>
-              <li>Internal URIs: <code>cactus://settings</code>, history, bookmarks</li>
+              <li>Repository: <a href="{{GITHUB_REPO}}">{{GITHUB_REPO}}</a></li>
+              <li>Release binary: <code>cargo build --release</code></li>
+              <li>Flatpak: <code>flatpak/org.cactus.Browser.yml</code></li>
+              <li>In the app: <code>cactus://privacy</code>, settings, history, bookmarks</li>
             </ul>
           </div>
           <div class="codeblock">
             <div class="codeblock-label">shell</div>
-            <pre><span class="c"># Debian / Ubuntu (example)</span>
+            <pre><span class="c"># Clone and build (Debian / Ubuntu deps shown)</span>
+<span class="k">git clone</span> {{GITHUB_REPO}}.git
+<span class="k">cd</span> cactus-browser
+
 <span class="k">sudo apt install</span> build-essential pkg-config \
   libgtk-4-dev libadwaita-1-dev \
   libwebkitgtk-6.0-dev libsqlite3-dev
@@ -788,24 +973,60 @@
         </div>
       </section>
 
+      <section class="cta-band" aria-labelledby="cta-title">
+        <h2 id="cta-title">Ready to try Cactus?</h2>
+        <p>Clone the repo, build once, and set it as your daily browser on Linux.</p>
+        <div class="hero-links">
+          <a href="#install">Build instructions</a>
+          <a class="ghost" href="{{GITHUB_REPO}}" rel="noopener noreferrer">Star on GitHub</a>
+        </div>
+      </section>
+
       <footer class="end">
         <div>
           <p class="end-brand">Cactus Browser</p>
-          <p class="end-domain">cactus-browser.tech</p>
+          <p class="end-domain"><a href="{{SITE_URL}}">cactus-browser.tech</a></p>
         </div>
         <nav class="end-nav" aria-label="Footer">
-          <a href="https://github.com/cactus-browser/cactus">GitHub</a>
-          <a href="cactus://newtab">New tab</a>
-          <a href="cactus://settings">Settings</a>
-          <a href="cactus://about">About</a>
+          <a href="{{GITHUB_REPO}}">GitHub</a>
+          <a href="{{GITHUB_ISSUES}}">Issues</a>
+          <a href="{{GITHUB_RELEASES}}">Releases</a>
+          <a href="#privacy">Privacy policy</a>
+          <a href="#install">Download</a>
+          <a href="cactus://privacy">Dashboard</a>
         </nav>
       </footer>
     </div>
   </div>
   <script>
     (function () {
+      var repo = "https://github.com/yohannes-mesay/cactus-browser";
+      var site = "https://cactus-browser.tech";
+      if (document.documentElement.innerHTML.indexOf("{{GITHUB") !== -1) {
+        var map = {
+          "{{SITE_URL}}": site,
+          "{{GITHUB_REPO}}": repo,
+          "{{GITHUB_ISSUES}}": repo + "/issues",
+          "{{GITHUB_RELEASES}}": repo + "/releases"
+        };
+        document.querySelectorAll("[href]").forEach(function (el) {
+          var h = el.getAttribute("href");
+          if (!h) return;
+          Object.keys(map).forEach(function (k) { h = h.split(k).join(map[k]); });
+          el.setAttribute("href", h);
+        });
+        document.querySelectorAll("pre, li").forEach(function (el) {
+          var t = el.innerHTML;
+          Object.keys(map).forEach(function (k) { t = t.split(k).join(map[k]); });
+          el.innerHTML = t;
+        });
+        var canon = document.querySelector('link[rel="canonical"]');
+        if (canon) canon.setAttribute("href", site);
+      }
+
       var meta = document.getElementById("hero-meta");
       var engine = document.getElementById("spec-engine");
+      var specVer = document.getElementById("spec-version");
       var railVer = document.getElementById("rail-version");
       var heroEngine = document.getElementById("hero-engine");
       if (heroEngine && heroEngine.textContent.indexOf("{{") !== -1) {
@@ -815,10 +1036,15 @@
         var label = meta.querySelector(".hero-meta-label");
         if (label) label.textContent = "Release 1.2.0";
         if (engine) engine.textContent = "WebKitGTK 6";
+        if (specVer) specVer.textContent = "1.2.0";
       } else if (meta) {
         var labelEl = meta.querySelector(".hero-meta-label");
         var vm = labelEl && labelEl.textContent.match(/Release\s+(\S+)/);
         if (vm && railVer) railVer.textContent = vm[1];
+        if (vm && specVer) specVer.textContent = vm[1];
+        if (specVer && specVer.textContent.indexOf("{{") !== -1) {
+          specVer.textContent = "1.2.0";
+        }
         var engText = heroEngine ? heroEngine.textContent : "";
         var wm = engText.match(/WebKitGTK\s+(.+)$/i);
         if (wm && engine) engine.textContent = "WebKitGTK " + wm[1].trim();

@@ -69,14 +69,17 @@ fn push_url(urls: &mut Vec<String>, raw: &str) {
 }
 
 pub fn help_text() -> &'static str {
-    "Cactus — native Linux-first browser\n\n\
+    const TEXT: &str = "Cactus — native Linux-first browser\n\n\
      Usage: cactus [OPTIONS] [URL...]\n\n\
      Options:\n\
        -p, --private      Open a private window\n\
        -v, --verbose      More logging\n\
            --restore      Force session restore\n\
            --no-restore   Skip session restore\n\
-       -h, --help         Show this help\n"
+       -h, --help         Show this help\n\n\
+     Project: https://cactus-browser.tech\n\
+     Source:  https://github.com/yohannes-mesay/cactus-browser\n";
+    TEXT
 }
 
 #[cfg(test)]
