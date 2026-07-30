@@ -7,7 +7,9 @@ Hosting uses **GitHub Pages** from this repo (`main` → GitHub Actions workflow
 1. Open [github.com/yohannes-mesay/cactus-browser/settings/pages](https://github.com/yohannes-mesay/cactus-browser/settings/pages)
 2. **Build and deployment** → Source: **GitHub Actions**
 3. After the first successful workflow run, under **Custom domain** enter: `cactus-browser.tech`
-4. Enable **Enforce HTTPS** when GitHub offers it (after DNS propagates)
+4. Enable **Enforce HTTPS** when GitHub offers it (after DNS propagates — usually a few minutes after “DNS check successful”)
+
+GitHub may still show the default `yohannes-mesay.github.io/cactus-browser/` URL in Actions; once the custom domain is saved, the live site is **https://cactus-browser.tech**.
 
 ## 2. DNS at manage.get.tech
 
